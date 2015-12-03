@@ -76,25 +76,34 @@ def create_pandas_abc_type(name, attr, comp):
 
 
 ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index",))
-ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
-ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",))
-ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
-ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",))
-ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",))
-ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
-ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",))
-ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ", ("index",
-                                                                 "int64index",
-                                                                 "rangeindex",
-                                                                 "float64index",
-                                                                 "multiindex",
-                                                                 "datetimeindex",
-                                                                 "timedeltaindex",
-                                                                 "periodindex",
-                                                                 "categoricalindex"))
+ABCInt64Index = create_pandas_abc_type("ABCInt64Index",
+                                       "_typ", ("int64index",))
+ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index",
+                                         "_typ", ("float64index",))
+ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex",
+                                       "_typ", ("multiindex",))
+ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex",
+                                          "_typ", ("datetimeindex",))
+ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex",
+                                           "_typ", ("timedeltaindex",))
+ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex",
+                                        "_typ", ("periodindex",))
+ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex",
+                                             "_typ", ("categoricalindex",))
+ABCIndexClass = create_pandas_abc_type("ABCIndexClass",
+                                       "_typ", ("index",
+                                                "int64index",
+                                                "rangeindex",
+                                                "float64index",
+                                                "multiindex",
+                                                "datetimeindex",
+                                                "timedeltaindex",
+                                                "periodindex",
+                                                "categoricalindex"))
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
-ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+ABCDataFrame = create_pandas_abc_type("ABCDataFrame",
+                                      "_typ", ("dataframe",))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
 ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                          ('sparse_series',
@@ -1758,8 +1767,7 @@ def is_bool_indexer(key):
 
 def _default_index(n):
     from pandas.core.index import RangeIndex
-    result = RangeIndex(0, int(n), name=None)
-    return result
+    return RangeIndex(0, n, name=None)
 
 
 def ensure_float(arr):
@@ -2155,11 +2163,6 @@ def is_integer_dtype(arr_or_dtype):
 def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
-
-def is_int64_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
-    return issubclass(tipo, np.int64)
-
 
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)

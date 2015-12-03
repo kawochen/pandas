@@ -1999,14 +1999,14 @@ class CheckIndexing(object):
         from itertools import permutations
         icol = ['jim', 'joe', 'jolie']
 
-        def verify_first_level(df, level, idx, check_index_type=True):
+        def verify_first_level(df, level, idx, check_index_type='equiv'):
             f = lambda val: np.nonzero(df[level] == val)[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
             assert_frame_equal(left, right, check_index_type=check_index_type)
 
-        def verify(df, level, idx, indexer, check_index_type=True):
+        def verify(df, level, idx, indexer, check_index_type='equiv'):
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[indexer].set_index(icol)
             assert_frame_equal(left, right, check_index_type=check_index_type)
@@ -2025,21 +2025,21 @@ class CheckIndexing(object):
 
         # reindex by these causes different MultiIndex levels
         for idx in [['D', 'F'], ['A', 'C', 'B']]:
-            verify_first_level(df, 'jim', idx, check_index_type=False)
+            verify_first_level(df, 'jim', idx, False)
 
         verify(df, 'joe', list('abcde'), [3, 2, 1, 0, 5, 4, 8, 7, 6])
-        verify(df, 'joe', list('abcd'),  [3, 2, 1, 0, 5, 8, 7, 6])
-        verify(df, 'joe', list('abc'),   [3, 2, 1, 8, 7, 6])
-        verify(df, 'joe', list('eca'),   [1, 3, 4, 6, 8])
-        verify(df, 'joe', list('edc'),   [0, 1, 4, 5, 6])
+        verify(df, 'joe', list('abcd'), [3, 2, 1, 0, 5, 8, 7, 6])
+        verify(df, 'joe', list('abc'), [3, 2, 1, 8, 7, 6])
+        verify(df, 'joe', list('eca'), [1, 3, 4, 6, 8])
+        verify(df, 'joe', list('edc'), [0, 1, 4, 5, 6])
         verify(df, 'joe', list('eadbc'), [3, 0, 2, 1, 4, 5, 8, 7, 6])
-        verify(df, 'joe', list('edwq'),  [0, 4, 5])
-        verify(df, 'joe', list('wq'),    [], check_index_type=False)
+        verify(df, 'joe', list('edwq'), [0, 4, 5])
+        verify(df, 'joe', list('wq'), [], False)
 
-        df = DataFrame({'jim':['mid'] * 5 + ['btm'] * 8 + ['top'] * 7,
-                        'joe':['3rd'] * 2 + ['1st'] * 3 + ['2nd'] * 3 +
-                              ['1st'] * 2 + ['3rd'] * 3 + ['1st'] * 2 +
-                              ['3rd'] * 3 + ['2nd'] * 2,
+        df = DataFrame({'jim': ['mid'] * 5 + ['btm'] * 8 + ['top'] * 7,
+                        'joe': ['3rd'] * 2 + ['1st'] * 3 + ['2nd'] * 3 +
+                               ['1st'] * 2 + ['3rd'] * 3 + ['1st'] * 2 +
+                               ['3rd'] * 3 + ['2nd'] * 2,
                         # this needs to be jointly unique with jim and joe or
                         # reindexing will fail ~1.5% of the time, this works
                         # out to needing unique groups of same size as joe
@@ -3257,8 +3257,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # from GH3479
 
         assert_fr_equal = functools.partial(assert_frame_equal,
-                                            check_index_type=True,
-                                            check_column_type=True,
                                             check_frame_type=True)
         arrays = [
             ('float', np.array([1.5, 2.0])),
@@ -6737,7 +6735,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result.index = result.index.rename('dt_index')
             result['dt_data'] = pd.to_timedelta(result['dt_data'])
 
-            assert_frame_equal(df, result, check_index_type=True)
+            assert_frame_equal(df, result)
 
         # tz, 8260
         with ensure_clean(pname) as path:
@@ -6922,65 +6920,67 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # s3=make_dtnjat_arr(chunksize+5,0)
         with ensure_clean('.csv') as pth:
-            df=DataFrame(dict(a=s1,b=s2))
-            df.to_csv(pth,chunksize=chunksize)
+            df = DataFrame(dict(a=s1, b=s2))
+            df.to_csv(pth, chunksize=chunksize)
             recons = DataFrame.from_csv(pth)._convert(datetime=True,
-                                                             coerce=True)
-            assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
+                                                      coerce=True)
+            assert_frame_equal(df, recons,
+                               check_names=False,
+                               check_less_precise=True)
+
+        nrows_list = [2, 10, N - 1, N, N + 1, N + 2, 2 * N - 2,
+                      2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2]
 
         for ncols in [4]:
-            base = int((chunksize// ncols or 1) or 1)
-            for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                  base-1,base,base+1]:
-                _do_test(mkdf(nrows, ncols,r_idx_type='dt',
-                              c_idx_type='s'),path, 'dt','s')
-
+            base = int((chunksize // ncols or 1) or 1)
+            for nrows in nrows_list:
+                _do_test(mkdf(nrows, ncols, r_idx_type='dt',
+                              c_idx_type='s'), path, 'dt', 's')
 
         for ncols in [4]:
-            base = int((chunksize// ncols or 1) or 1)
-            for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                  base-1,base,base+1]:
-                _do_test(mkdf(nrows, ncols,r_idx_type='dt',
-                              c_idx_type='s'),path, 'dt','s')
+            base = int((chunksize // ncols or 1) or 1)
+            for nrows in nrows_list:
+                _do_test(mkdf(nrows, ncols, r_idx_type='dt',
+                              c_idx_type='s'), path, 'dt', 's')
                 pass
 
-        for r_idx_type,c_idx_type  in [('i','i'),('s','s'),('u','dt'),('p','p')]:
-            for ncols in [1,2,3,4]:
-                base = int((chunksize// ncols or 1) or 1)
-                for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                      base-1,base,base+1]:
-                    _do_test(mkdf(nrows, ncols,r_idx_type=r_idx_type,
-                                  c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
+        for r_idx_type, c_idx_type in [('i', 'i'), ('s', 's'),
+                                       ('u', 'dt'), ('p', 'p')]:
+            for ncols in [1, 2, 3, 4]:
+                base = int((chunksize // ncols or 1) or 1)
+                for nrows in nrows_list:
+                    _do_test(mkdf(nrows, ncols, r_idx_type=r_idx_type,
+                                  c_idx_type=c_idx_type),
+                             path, r_idx_type, c_idx_type)
 
-        for ncols in [1,2,3,4]:
-            base = int((chunksize// ncols or 1) or 1)
-            for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                      base-1,base,base+1]:
-                _do_test(mkdf(nrows, ncols),path)
+        for ncols in [1, 2, 3, 4]:
+            base = int((chunksize // ncols or 1) or 1)
+            for nrows in nrows_list:
+                _do_test(mkdf(nrows, ncols), path)
 
-        for nrows in [10,N-2,N-1,N,N+1,N+2]:
+        for nrows in [10, N - 2, N - 1, N, N + 1, N + 2]:
             df = mkdf(nrows, 3)
             cols = list(df.columns)
-            cols[:2] = ["dupe","dupe"]
-            cols[-2:] = ["dupe","dupe"]
+            cols[:2] = ["dupe", "dupe"]
+            cols[-2:] = ["dupe", "dupe"]
             ix = list(df.index)
-            ix[:2] = ["rdupe","rdupe"]
-            ix[-2:] = ["rdupe","rdupe"]
-            df.index=ix
-            df.columns=cols
-            _do_test(df,path,dupe_col=True)
+            ix[:2] = ["rdupe", "rdupe"]
+            ix[-2:] = ["rdupe", "rdupe"]
+            df.index = ix
+            df.columns = cols
+            _do_test(df, path, dupe_col=True)
 
-
-        _do_test(DataFrame(index=lrange(10)),path)
-        _do_test(mkdf(chunksize//2+1, 2,r_idx_nlevels=2),path,rnlvl=2)
-        for ncols in [2,3,4]:
-            base = int(chunksize//ncols)
-            for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                      base-1,base,base+1]:
-                _do_test(mkdf(nrows, ncols,r_idx_nlevels=2),path,rnlvl=2)
-                _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
-                _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
-                         path,rnlvl=2,cnlvl=2)
+        _do_test(DataFrame(index=lrange(10)), path)
+        _do_test(mkdf(chunksize // 2 + 1, 2, r_idx_nlevels=2), path, rnlvl=2)
+        for ncols in [2, 3, 4]:
+            base = int(chunksize // ncols)
+            for nrows in [10, N - 2, N - 1, N, N + 1, N + 2, 2 * N - 2,
+                          2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
+                          base - 1, base, base + 1]:
+                _do_test(mkdf(nrows, ncols, r_idx_nlevels=2), path, rnlvl=2)
+                _do_test(mkdf(nrows, ncols, c_idx_nlevels=2), path, cnlvl=2)
+                _do_test(mkdf(nrows, ncols, r_idx_nlevels=2, c_idx_nlevels=2),
+                         path, rnlvl=2, cnlvl=2)
 
     def test_to_csv_from_csv_w_some_infs(self):
 
@@ -7698,10 +7698,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         df.columns = dtypes
+
         # Ensure df size is as expected
+        # (cols + index) * rows * bytes
         df_size = df.memory_usage().sum()
-        exp_size = (len(dtypes) + 1) * n * 8  # (cols + index) * rows * bytes
+        exp_size = (len(dtypes)) * n * 8 + df.index.memory_usage()
         self.assertEqual(df_size, exp_size)
+
         # Ensure number of cols in memory_usage is the same as df
         size_df = np.size(df.columns.values) + 1  # index=True; default
         self.assertEqual(size_df, np.size(df.memory_usage()))
@@ -13365,8 +13368,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         com.pprint_thing(a)
         com.pprint_thing(b)
         assert_frame_equal(a, b)
+
         # should work with heterogeneous types
-        df = pd.DataFrame({"A": np.arange(6,dtype='int64'),
+        df = pd.DataFrame({"A": np.arange(6, dtype='int64'),
                            "B": pd.date_range('2011', periods=6),
                            "C": list('abcdef')})
         exp = pd.DataFrame({"A": pd.Series([], dtype=df["A"].dtype),
@@ -13590,7 +13594,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         if not compat.PY3:
             raise nose.SkipTest("build in round cannot be overriden "
                                 "prior to Python 3")
-
         # GH11763
         # Here's the test frame we'll be working with
         df = DataFrame(
@@ -13629,7 +13632,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.quantile([.5, .75], axis=1)
         expected = DataFrame({1: [1.5, 1.75], 2: [2.5, 2.75],
                               3: [3.5, 3.75]}, index=[0.5, 0.75])
-        assert_frame_equal(result, expected, check_index_type=True)
+        assert_frame_equal(result, expected)
 
         # We may want to break API in the future to change this
         # so that we exclude non-numeric along the same axis
